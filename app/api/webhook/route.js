@@ -2,18 +2,14 @@ import { Webhook } from "svix";
 import { headers } from "next/headers";
 import { createOrUpdateUser, deleteUser } from "@lib/actions/user";
 
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
+export async function POST(req) {
+  // You can find this in the Clerk Dashboard -> Webhooks -> choose the webhook
+  const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 
-if (!WEBHOOK_SECRET) {
-  throw new Error(
-    "Please add WEBHOOK_SECRET from Clerk Dashboard to .env or .env.local"
-  );
-}
-
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", ["POST"]);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
+  if (!WEBHOOK_SECRET) {
+    throw new Error(
+      "Please add WEBHOOK_SECRET from Clerk Dashboard to .env or .env.local"
+    );
   }
 
   // Get the headers
@@ -24,7 +20,9 @@ export default async function handler(req, res) {
 
   // If there are no headers, error out
   if (!svix_id || !svix_timestamp || !svix_signature) {
-    return res.status(400).json({ error: "Error occurred -- no svix headers" });
+    return new Response("Error occured -- no svix headers", {
+      status: 400,
+    });
   }
 
   // Get the body
@@ -45,21 +43,36 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("Error verifying webhook:", err);
-    return res.status(400).json({ error: "Error occurred" });
+    return new Response("Error occured", {
+      status: 400,
+    });
   }
 
   // Handle the event
   const eventType = evt?.type;
 
   if (eventType === "user.created" || eventType === "user.updated") {
-    const { id, first_name, last_name, image_url, email_addresses, username } = evt?.data;
+    const { id, first_name, last_name, image_url, email_addresses, username } =
+      evt?.data;
 
     try {
-      await createOrUpdateUser(id, first_name, last_name, image_url, email_addresses, username);
-      return res.status(200).json({ message: "User is created or updated" });
+      await createOrUpdateUser(
+        id,
+        first_name,
+        last_name,
+        image_url,
+        email_addresses,
+        username
+      );
+
+      return new Response("User is created or updated", {
+        status: 200,
+      });
     } catch (err) {
       console.error("Error creating or updating user:", err);
-      return res.status(500).json({ error: "Error occurred" });
+      return new Response("Error occured", {
+        status: 500,
+      });
     }
   }
 
@@ -67,12 +80,15 @@ export default async function handler(req, res) {
     try {
       const { id } = evt?.data;
       await deleteUser(id);
-      return res.status(200).json({ message: "User is deleted" });
+
+      return new Response("User is deleted", {
+        status: 200,
+      });
     } catch (err) {
       console.error("Error deleting user:", err);
-      return res.status(500).json({ error: "Error occurred" });
+      return new Response("Error occured", {
+        status: 500,
+      });
     }
   }
-
-  res.status(400).json({ error: "Unhandled event type" });
 }

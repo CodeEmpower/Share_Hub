@@ -1,27 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Add, Person, Search } from "@mui/icons-material";
+import { Add, Logout, Person, Search } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
-import { UserButton, useUser } from "@clerk/nextjs";
+import { SignOutButton, SignedIn, UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import Image from "next/image";
 import { dark } from "@clerk/themes";
 import Loader from "@components/Loader";
 
 const TopBar = () => {
   const { user, isLoaded } = useUser();
+
   const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState(null);
-  const router = useRouter();
-  const [search, setSearch] = useState("");
+
+  const [userData, setUserData] = useState({});
 
   const getUser = async () => {
-    if (user?.id) {
-      const response = await fetch(`/api/user/${user.id}`);
-      const data = await response.json();
-      setUserData(data);
-      setLoading(false);
-    }
+    const response = await fetch(`/api/user/${user.id}`);
+    const data = await response.json();
+    setUserData(data);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -30,11 +29,12 @@ const TopBar = () => {
     }
   }, [user]);
 
-  if (!isLoaded || loading) {
-    return <Loader />;
-  }
+  const router = useRouter();
+  const [search, setSearch] = useState("");
 
-  return (
+  return !isLoaded || loading ? (
+    <Loader />
+  ) : (
     <div className="flex justify-between items-center mt-6">
       <div className="relative">
         <input
@@ -58,16 +58,13 @@ const TopBar = () => {
       </button>
 
       <div className="flex gap-4 md:hidden">
-        {userData ? (
-          <Link href={`/profile/${userData._id}/posts`}>
-            <Person sx={{ fontSize: "35px", color: "white" }} />
-          </Link>
-        ) : (
-          <p>Loading user data...</p>
-        )}
+        <Link href={`/profile/${userData._id}/posts`}>
+          <Person sx={{ fontSize: "35px", color: "white" }} />
+        </Link>
+
         <UserButton appearance={{ baseTheme: dark }} afterSignOutUrl="/sign-in" />
       </div>
-    </div> 
+    </div>
   );
 };
 

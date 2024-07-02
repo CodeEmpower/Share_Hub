@@ -67,7 +67,7 @@ const TopBar = () => {
         )}
         <UserButton appearance={{ baseTheme: dark }} afterSignOutUrl="/sign-in" />
       </div>
-    </div>
+    </div> 
   );
 };
 
